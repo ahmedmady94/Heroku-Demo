@@ -1,12 +1,19 @@
 import numpy as np
 from flask import Flask, request, jsonify, render_template
-import tensorflow as tf
 import joblib
 
 app = Flask(__name__)
 trans1=joblib.load('f1')
 trans2=joblib.load('f2')
-model = tf.keras.models.load_model('HHV_model_2.h5')
+w1= np.loadtxt('w1.csv',delimiter=',')
+b1= np.loadtxt('b1.csv',delimiter=',')
+w2= np.loadtxt('w2.csv',delimiter=',')
+b2= np.loadtxt('b2.csv',delimiter=',')
+w3= np.loadtxt('w3.csv',delimiter=',')
+b3= np.loadtxt('b3.csv',delimiter=',')
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
 
 def model_predict(x):
 
@@ -20,9 +27,11 @@ def model_predict(x):
     
     a=np.array([x,])
     res= trans1.transform(a)
-    y=model.predict(res)
+    
+    
+    y= sigmoid(np.tanh(res@w1+b1)@w2+b2)@w3+b3
+    y=y.reshape(-1,1)
     real_y= np.squeeze(trans2.inverse_transform(y))
-
     return(round(float(real_y),2))
 
 @app.route('/')
@@ -48,7 +57,7 @@ def predict_api():
     '''
     data = request.get_json(force=True)
     
-    prediction = model.predict([np.array(list(data.values()))])
+    prediction = model_predict([np.array(list(data.values()))])
 
    
     output = prediction[0]
